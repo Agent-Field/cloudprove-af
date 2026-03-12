@@ -1,21 +1,54 @@
+# Python
 __pycache__/
-*.pyc
-.venv/
-.env
-.ruff_cache/
+*.py[cod]
+*.pyo
+*.pyd
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build outputs
 dist/
+build/
 *.egg-info/
+*.egg
+
+# CloudSecurity-AF runtime
 .cloudprove-af/
 workspaces/
-.plandb.db
-
-.DS_Store
-agent.log
+*.sarif
 *.log
+
+# Claude Code
+.claude/
+
+# Pipeline output
+.agentfield_output.json
+
+# Worktrees
+.worktrees/
+_worktrees/
 .docker-sdk/
 agentfield-sdk/
+
+# Internal (not committed)
 .product/
 .agents/
-.claude/
+.plandb.db
