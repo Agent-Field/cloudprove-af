@@ -70,22 +70,27 @@ Recommended operating model:
 ## Quick Start
 
 ```bash
-pip install cloudsecurity-af
+# Clone and start with Docker Compose
+git clone https://github.com/Agent-Field/cloudsecurity-af.git
+cd cloudsecurity-af
 
-# Start AgentField control plane
-# (typically at http://localhost:8080)
+# Set your model provider key
+export OPENROUTER_API_KEY=sk-or-...
 
-cloudsecurity-af  # starts on port 8004
+# Start AgentField control plane + CloudSecurity agent
+docker compose -f docker-compose.local.yml up -d
 
-# Trigger a scan
-curl -X POST http://localhost:8004/api/v1/execute/async/cloudsecurity.scan \
+# Trigger a scan via REST API
+curl -X POST http://localhost:8080/api/v1/execute/async/cloudsecurity.scan \
   -H "Content-Type: application/json" \
-  -d '{"repo_url": "https://github.com/org/infra-repo"}'
+  -d '{"input":{"repo_url":"https://github.com/org/infra-repo","depth":"quick"}}'
 ```
 
-Key API skills:
-- `cloudsecurity.scan` (Tier 1 static analysis)
-- `cloudsecurity.prove` (Tier 2+ live verification flow)
+API endpoints (via AgentField control plane):
+- `POST /api/v1/execute/async/cloudsecurity.scan` — Tier 1 static analysis
+- `POST /api/v1/execute/async/cloudsecurity.prove` — Tier 2+ live verification
+- `GET /api/v1/executions/{execution_id}` — Check scan status
+- `GET /api/v1/executions/{execution_id}/result` — Retrieve results
 
 ## Three Tiers
 
@@ -170,14 +175,15 @@ pytest
 ruff check src tests
 mypy src
 
-# Run service locally
-cloudsecurity-af
+# Build and run via Docker
+docker compose -f docker-compose.local.yml build
+docker compose -f docker-compose.local.yml up -d
 ```
 
 Package metadata:
 - Python: `>=3.11`
 - License: Apache-2.0
-- Core deps: `agentfield`, `pydantic>=2.0`, `pyhcl2>=4.0`
+- Core deps: `agentfield`, `pydantic>=2.0`, `pyhcl2>=2.0`
 
 ## Open Core Model
 

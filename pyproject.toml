@@ -26,9 +26,6 @@ dev = [
     "mypy>=1.10",
 ]
 
-[project.scripts]
-cloudsecurity-af = "cloudsecurity_af.app:main"
-
 [tool.hatch.build.targets.wheel]
 packages = ["src/cloudsecurity_af"]
 
