@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+dist/
+*.egg-info/
+.cloudprove-af/
+workspaces/
+.plandb.db
+
+.DS_Store
+agent.log
+*.log

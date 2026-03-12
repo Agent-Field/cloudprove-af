@@ -1,0 +1,58 @@
+services:
+  agentfield:
+    image: agentfield/control-plane:latest
+    ports:
+      - "8081:8080"
+    environment:
+      - AF_MODE=dev
+      - AGENTFIELD_HTTP_ADDR=0.0.0.0:8080
+      - AGENTFIELD_STORAGE_MODE=local
+    volumes:
+      - agentfield-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  cloudprove-af:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8005"
+    environment:
+      - AGENTFIELD_SERVER=http://agentfield:8080
+      - AGENTFIELD_API_KEY=${AGENTFIELD_API_KEY:-}
+      - AGENT_CALLBACK_URL=http://cloudprove-af:8005
+      - HARNESS_PROVIDER=opencode
+      - HARNESS_MODEL=${HARNESS_MODEL:-openrouter/moonshotai/kimi-k2.5}
+      - AI_MODEL=${AI_MODEL:-openrouter/moonshotai/kimi-k2.5}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - PYTHONUNBUFFERED=1
+      # Cloud provider credentials (read-only, for prove mode)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-}
+      - AZURE_SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID:-}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID:-}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}
+    volumes:
+      - ${SCAN_REPOS_PATH:-./workspaces}:/workspaces
+      - ./benchmark:/app/benchmark
+    depends_on:
+      - agentfield
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  agentfield-data:
