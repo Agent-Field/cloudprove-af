@@ -16,3 +16,6 @@ agent.log
 *.log
 .docker-sdk/
 agentfield-sdk/
+.product/
+.agents/
+.claude/
