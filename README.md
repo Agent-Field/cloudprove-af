@@ -19,7 +19,9 @@
 
 </div>
 
-Other tools match patterns against a rule database. CloudProve **constructs multi-resource attack paths and proves exploitability**: every finding ships with a step-by-step attack narrative, adversarial verification, and an IaC fix. Free, open source, one API call. A full scan of a Terraform repo costs about **$0.50 in LLM calls**.
+Most IaC tools tell you everything that is wrong. CloudProve tells you what is most dangerous **first**.
+
+It connects individual misconfigurations into realistic risk chains, validates which ones matter most, and gives teams a clear fix-first path before deployment. Open source, API-first, and designed for fast CI workflows.
 
 <p align="center">
   <img src="assets/hero.png" alt="CloudProve-AF — shift-left attack path analysis" width="100%" />
@@ -27,16 +29,29 @@ Other tools match patterns against a rule database. CloudProve **constructs mult
 
 ## Why CloudProve?
 
-Checkov, tfsec, and KICS find individual misconfigurations. Wiz and Orca construct attack paths — but require your infrastructure **deployed**. CloudProve fills the gap: **attack path analysis from IaC alone**, before you deploy.
+Checkov, tfsec, and KICS are strong at broad control checks. Wiz, Orca, and Prisma Cloud are strong once infrastructure is live. CloudProve fills the shift-left gap in between: **priority-grade attack path analysis directly from IaC, before deployment**.
 
-| Capability | CloudProve-AF | Checkov / tfsec / KICS | Wiz / Orca |
+| Capability | CloudProve-AF | Checkov / tfsec / KICS | Wiz / Orca / Prisma Cloud |
 |---|---|---|---|
-| **Approach** | AI reasoning over resource graph | ~3,000 static rules | Graph-based, live cloud |
+| **Core value** | Risk-prioritized attack-path triage pre-deploy | Broad policy/rule coverage | Runtime posture and exposure monitoring |
 | **Attack path chains** | Yes (CHAIN phase) | No (individual findings) | Yes |
 | **Requires deployment** | **No** — IaC only | No — IaC only | **Yes** — live cloud |
-| **Adversarial verification** | HUNT → PROVE (near-zero false positives) | Pattern match (high noise) | Runtime checks |
-| **IaC remediation** | Fix diffs + breaking change analysis | Basic fix hints | N/A (runtime tool) |
-| **Cost** | **Free / open source** (BYOK) | Free / open source | Enterprise ($$$) |
+| **Decision quality** | Fix-first, exploitability-oriented output | Large findings list, less chain context | Strong runtime context after deploy |
+| **Remediation context** | IaC fix path + impact framing | Basic fix hints | Mostly runtime-centric workflows |
+| **Cost profile** | **Free / open source** (BYOK model cost) | Free / open source | Enterprise platform contracts ($$$) |
+
+## Where CloudProve Sits in the Stack
+
+CloudProve is not a replace-all scanner. It is the **decision layer** in a modern cloud security stack:
+
+- **Rule scanners** (Checkov/tfsec/KICS): broad deterministic control coverage.
+- **CloudProve**: pre-deploy risk prioritization and multi-resource attack-path context.
+- **Runtime CNAPP** (Wiz/Orca/Prisma Cloud): deployed-cloud visibility and runtime monitoring.
+
+Recommended operating model:
+
+1. Run rule scanner + CloudProve in PR for breadth + fix-first prioritization.
+2. Use runtime CNAPP after deploy for drift and production-state risk.
 
 ## Architecture
 
