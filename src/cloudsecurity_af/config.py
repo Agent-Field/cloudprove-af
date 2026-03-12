@@ -91,13 +91,13 @@ class AIIntegrationConfig(BaseModel):
     harness_model: str = Field(
         default_factory=lambda: os.getenv(
             "CLOUDSECURITY_MODEL",
-            os.getenv("HARNESS_MODEL", "minimax/minimax-m2.5"),
+            os.getenv("HARNESS_MODEL", "openrouter/minimax/minimax-m2.5"),
         )
     )
     ai_model: str = Field(
         default_factory=lambda: os.getenv(
             "CLOUDSECURITY_AI_MODEL",
-            os.getenv("AI_MODEL", os.getenv("CLOUDSECURITY_MODEL", "minimax/minimax-m2.5")),
+            os.getenv("AI_MODEL", os.getenv("CLOUDSECURITY_MODEL", "openrouter/minimax/minimax-m2.5")),
         )
     )
     max_turns: int = Field(default_factory=lambda: int(os.getenv("CLOUDSECURITY_MAX_TURNS", "50")))

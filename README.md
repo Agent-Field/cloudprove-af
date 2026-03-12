@@ -275,7 +275,7 @@ See [`docs/GITHUB_ACTIONS.md`](docs/GITHUB_ACTIONS.md) for full Tier 1 and Tier 
 | `NODE_ID` | No | `cloudsecurity` | Agent node identifier |
 | `OPENROUTER_API_KEY` | Yes | - | Model provider credential |
 | `CLOUDSECURITY_PROVIDER` | No | `opencode` | Harness provider override |
-| `CLOUDSECURITY_MODEL` | No | `minimax/minimax-m2.5` | Harness model |
+| `CLOUDSECURITY_MODEL` | No | `openrouter/minimax/minimax-m2.5` | Harness model |
 | `CLOUDSECURITY_AI_MODEL` | No | `CLOUDSECURITY_MODEL`/`AI_MODEL` fallback | `.ai()` gate model |
 | `CLOUDSECURITY_MAX_TURNS` | No | `50` | Max turns per harness call |
 | `CLOUDSECURITY_REPO_PATH` | No | cwd | Local repository path fallback |
