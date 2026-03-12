@@ -5,19 +5,15 @@ import os
 from typing import Any
 
 _EDGE_TYPE_MAP = {
-    # --- IAM / trust (AWS, GCP, Azure, K8s RBAC) ---
-    "iam": "trust",
-    "role": "trust",
-    "policy": "trust",
-    "assume": "trust",
-    "clusterrole": "trust",
-    "clusterrolebinding": "trust",
-    "rolebinding": "trust",
+    # --- Specific multi-word keys first (must match before their substrings) ---
+    "networkpolicy": "network_path",
     "serviceaccount": "trust",
-    "managedidentity": "trust",
-    # --- Network (AWS, GCP, Azure, K8s) ---
-    "subnet": "network_path",
+    "clusterrolebinding": "trust",
+    "clusterrole": "trust",
+    "rolebinding": "trust",
+    # --- Network ---
     "security_group": "network_path",
+    "subnet": "network_path",
     "route": "network_path",
     "vpc": "network_path",
     "lb": "network_path",
@@ -33,9 +29,14 @@ _EDGE_TYPE_MAP = {
     "endpoint": "network_path",
     "flow_log": "network_path",
     "ingress": "network_path",
-    "networkpolicy": "network_path",
     "service": "network_path",
     "loadbalancer": "network_path",
+    # --- IAM / trust ---
+    "iam": "trust",
+    "role": "trust",
+    "policy": "trust",
+    "assume": "trust",
+    "managedidentity": "trust",
     # --- Data access (AWS, GCP, Azure, K8s) ---
     "bucket": "data_access",
     "dynamodb": "data_access",
@@ -86,8 +87,10 @@ _EDGE_TYPE_MAP = {
 
 
 def _infer_edge_type(source_type: str, target_type: str) -> str:
+    src = source_type.lower()
+    tgt = target_type.lower()
     for keyword, etype in _EDGE_TYPE_MAP.items():
-        if keyword in source_type or keyword in target_type:
+        if keyword in src or keyword in tgt:
             return etype
     return "references"
 
