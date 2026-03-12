@@ -80,17 +80,146 @@ export OPENROUTER_API_KEY=sk-or-...
 # Start AgentField control plane + CloudSecurity agent
 docker compose -f docker-compose.local.yml up -d
 
-# Trigger a scan via REST API
+# Trigger a scan via the AgentField REST API
 curl -X POST http://localhost:8080/api/v1/execute/async/cloudsecurity.scan \
   -H "Content-Type: application/json" \
   -d '{"input":{"repo_url":"https://github.com/org/infra-repo","depth":"quick"}}'
+
+# Returns: {"execution_id":"exec_...","status":"queued", ...}
+
+# Check scan progress
+curl http://localhost:8080/api/v1/executions/exec_...
+
+# Retrieve results when complete
+curl http://localhost:8080/api/v1/executions/exec_.../result
 ```
 
-API endpoints (via AgentField control plane):
-- `POST /api/v1/execute/async/cloudsecurity.scan` — Tier 1 static analysis
-- `POST /api/v1/execute/async/cloudsecurity.prove` — Tier 2+ live verification
-- `GET /api/v1/executions/{execution_id}` — Check scan status
-- `GET /api/v1/executions/{execution_id}/result` — Retrieve results
+All interaction happens through the [AgentField](https://github.com/Agent-Field/agentfield) control plane REST API. CloudSecurity registers as an agent node — you never call it directly.
+
+## REST API
+
+CloudSecurity exposes two reasoners through the [AgentField control plane](https://github.com/Agent-Field/agentfield). All requests go to the control plane (default `http://localhost:8080`), which routes execution to the agent.
+
+### Trigger a Scan
+
+```bash
+curl -X POST http://localhost:8080/api/v1/execute/async/cloudsecurity.scan \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "repo_url": "https://github.com/org/infra-repo",
+      "branch": "main",
+      "depth": "quick",
+      "severity_threshold": "low",
+      "output_formats": ["sarif", "json"]
+    }
+  }'
+```
+
+Response:
+```json
+{
+  "execution_id": "exec_20260312_063521_ik2ghzst",
+  "run_id": "run_20260312_063521_f6zfmc7q",
+  "status": "queued",
+  "target": "cloudsecurity.scan",
+  "created_at": "2026-03-12T06:35:21Z"
+}
+```
+
+### Check Execution Status
+
+```bash
+curl http://localhost:8080/api/v1/executions/{execution_id}
+```
+
+Returns `queued` → `running` → `completed` (or `failed`).
+
+### Retrieve Results
+
+```bash
+curl http://localhost:8080/api/v1/executions/{execution_id}/result
+```
+
+<details>
+<summary><strong>Tier 2 — Live Verification (with cloud credentials)</strong></summary>
+
+```bash
+curl -X POST http://localhost:8080/api/v1/execute/async/cloudsecurity.prove \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "repo_url": "https://github.com/org/infra-repo",
+      "cloud_provider": "aws",
+      "cloud_regions": ["us-east-1"],
+      "assume_role_arn": "arn:aws:iam::123456789012:role/SecurityAuditRole",
+      "depth": "standard",
+      "severity_threshold": "medium",
+      "output_formats": ["sarif", "json"]
+    }
+  }'
+```
+
+Tier 2 runs the full HUNT → CHAIN → PROVE pipeline with read-only cloud credentials for live verification and drift detection.
+
+</details>
+
+<details>
+<summary><strong>Full input reference (<code>CloudSecurityInput</code>)</strong></summary>
+
+```json
+{
+  "input": {
+    "repo_url": "https://github.com/org/infra-repo",
+    "branch": "main",
+    "commit_sha": null,
+    "base_commit_sha": null,
+    "depth": "quick | standard | thorough",
+    "severity_threshold": "critical | high | medium | low | info",
+    "output_formats": ["sarif", "json", "markdown"],
+    "compliance_frameworks": ["cis_aws", "soc2", "hipaa", "pci_dss"],
+    "include_paths": ["modules/networking/"],
+    "exclude_paths": ["tests/", ".git/"],
+    "is_pr": false,
+    "pr_id": null,
+    "fail_on_findings": false,
+    "max_cost_usd": 5.0,
+    "max_duration_seconds": 3600,
+    "max_concurrent_hunters": 7,
+    "max_concurrent_provers": 3
+  }
+}
+```
+
+For Tier 2+ add `cloud` config:
+```json
+{
+  "input": {
+    "repo_url": "...",
+    "cloud_provider": "aws",
+    "cloud_regions": ["us-east-1", "eu-west-1"],
+    "assume_role_arn": "arn:aws:iam::123456789012:role/SecurityAuditRole"
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><strong>API endpoints summary</strong></summary>
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/execute/async/cloudsecurity.scan` | Trigger Tier 1 IaC scan (async) |
+| `POST` | `/api/v1/execute/async/cloudsecurity.prove` | Trigger Tier 2+ live verification (async) |
+| `GET` | `/api/v1/executions/{execution_id}` | Check execution status |
+| `GET` | `/api/v1/executions/{execution_id}/result` | Retrieve completed results |
+| `GET` | `/api/v1/nodes` | List registered agent nodes |
+| `GET` | `/api/v1/health` | Control plane health check |
+
+All endpoints are part of the [AgentField control plane API](https://github.com/Agent-Field/agentfield). See the [AgentField documentation](https://agentfield.dev/docs) for the full API reference.
+
+</details>
 
 ## Three Tiers
 
