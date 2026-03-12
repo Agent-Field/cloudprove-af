@@ -14,3 +14,5 @@ workspaces/
 .DS_Store
 agent.log
 *.log
+.docker-sdk/
+agentfield-sdk/
