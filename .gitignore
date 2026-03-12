@@ -49,6 +49,6 @@ _worktrees/
 agentfield-sdk/
 
 # Internal (not committed)
-.product/
+product/
 .agents/
 .plandb.db

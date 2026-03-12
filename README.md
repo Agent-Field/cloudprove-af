@@ -100,31 +100,26 @@ Recommended operating model:
 ## Quick Start
 
 ```bash
-# Clone and start with Docker Compose
-git clone https://github.com/Agent-Field/cloudsecurity-af.git
-cd cloudsecurity-af
-
-# Set your model provider key
-export OPENROUTER_API_KEY=sk-or-...
-
-# Start AgentField control plane + CloudSecurity agent
-docker compose -f docker-compose.local.yml up -d
-
-# Trigger a scan via the AgentField REST API
-curl -X POST http://localhost:8080/api/v1/execute/async/cloudsecurity.scan \
-  -H "Content-Type: application/json" \
-  -d '{"input":{"repo_url":"https://github.com/org/infra-repo","depth":"quick"}}'
-
-# Returns: {"execution_id":"exec_...","status":"queued", ...}
-
-# Check scan progress
-curl http://localhost:8080/api/v1/executions/exec_...
-
-# Retrieve results when complete
-curl http://localhost:8080/api/v1/executions/exec_.../result
+git clone https://github.com/Agent-Field/cloudsecurity-af.git && cd cloudsecurity-af
+cp .env.example .env          # Add OPENROUTER_API_KEY
+docker compose up --build
 ```
 
-All interaction happens through the [AgentField](https://github.com/Agent-Field/agentfield) control plane REST API. CloudSecurity registers as an agent node — you never call it directly.
+Starts AgentField control plane (`http://localhost:8080`) + CloudSecurity agent.
+
+Trigger a scan:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/execute/async/cloudsecurity.scan \
+  -H "Content-Type: application/json" \
+  -d '{"input": {"repo_url": "https://github.com/org/infra-repo"}}'
+```
+
+Poll for results:
+
+```bash
+curl http://localhost:8080/api/v1/executions/<execution_id>
+```
 
 ## REST API
 
@@ -335,8 +330,8 @@ ruff check src tests
 mypy src
 
 # Build and run via Docker
-docker compose -f docker-compose.local.yml build
-docker compose -f docker-compose.local.yml up -d
+docker compose build
+docker compose up -d
 ```
 
 Package metadata:
