@@ -5,10 +5,17 @@ import os
 from typing import Any
 
 _EDGE_TYPE_MAP = {
+    # --- IAM / trust (AWS, GCP, Azure, K8s RBAC) ---
     "iam": "trust",
     "role": "trust",
     "policy": "trust",
     "assume": "trust",
+    "clusterrole": "trust",
+    "clusterrolebinding": "trust",
+    "rolebinding": "trust",
+    "serviceaccount": "trust",
+    "managedidentity": "trust",
+    # --- Network (AWS, GCP, Azure, K8s) ---
     "subnet": "network_path",
     "security_group": "network_path",
     "route": "network_path",
@@ -25,6 +32,11 @@ _EDGE_TYPE_MAP = {
     "peering": "network_path",
     "endpoint": "network_path",
     "flow_log": "network_path",
+    "ingress": "network_path",
+    "networkpolicy": "network_path",
+    "service": "network_path",
+    "loadbalancer": "network_path",
+    # --- Data access (AWS, GCP, Azure, K8s) ---
     "bucket": "data_access",
     "dynamodb": "data_access",
     "rds": "data_access",
@@ -44,6 +56,13 @@ _EDGE_TYPE_MAP = {
     "efs": "data_access",
     "backup": "data_access",
     "snapshot": "data_access",
+    "configmap": "data_access",
+    "secret": "data_access",
+    "persistentvolume": "data_access",
+    "persistentvolumeclaim": "data_access",
+    "storageclass": "data_access",
+    "volume": "data_access",
+    # --- Execution (AWS, GCP, Azure, K8s, Docker) ---
     "lambda": "execution",
     "function": "execution",
     "instance": "execution",
@@ -55,6 +74,14 @@ _EDGE_TYPE_MAP = {
     "node_group": "execution",
     "launch_template": "execution",
     "auto_scaling": "execution",
+    "deployment": "execution",
+    "statefulset": "execution",
+    "daemonset": "execution",
+    "replicaset": "execution",
+    "cronjob": "execution",
+    "job": "execution",
+    "pod": "execution",
+    "container": "execution",
 }
 
 
@@ -66,56 +93,99 @@ def _infer_edge_type(source_type: str, target_type: str) -> str:
 
 
 def _cluster_key(resource: dict[str, Any]) -> str:
-    rtype = resource.get("type", "")
+    rtype = resource.get("type", "").lower()
+    provider = resource.get("provider", "").lower()
     file_path = resource.get("file_path", "")
     parts = file_path.split("/")
     module_dir = "/".join(parts[:-1]) if len(parts) > 1 else "root"
 
-    if any(
-        kw in rtype
-        for kw in (
-            "vpc",
-            "subnet",
-            "security_group",
-            "route",
-            "gateway",
-            "igw",
-            "nat",
-            "nacl",
-            "elb",
-            "alb",
-            "nlb",
-            "lb",
-            "network_interface",
-            "peering",
-            "endpoint",
-            "flow_log",
-        )
-    ):
+    _NETWORK_KW = (
+        "vpc",
+        "subnet",
+        "security_group",
+        "route",
+        "gateway",
+        "igw",
+        "nat",
+        "nacl",
+        "elb",
+        "alb",
+        "nlb",
+        "lb",
+        "network_interface",
+        "peering",
+        "endpoint",
+        "flow_log",
+        "ingress",
+        "networkpolicy",
+        "loadbalancer",
+    )
+    _IDENTITY_KW = (
+        "iam",
+        "role",
+        "policy",
+        "user",
+        "group",
+        "access_key",
+        "clusterrole",
+        "clusterrolebinding",
+        "rolebinding",
+        "serviceaccount",
+        "managedidentity",
+    )
+    _DATA_KW = (
+        "s3",
+        "bucket",
+        "rds",
+        "db_instance",
+        "dynamodb",
+        "neptune",
+        "elasticsearch",
+        "redshift",
+        "ebs",
+        "efs",
+        "kms",
+        "snapshot",
+        "backup",
+        "configmap",
+        "secret",
+        "persistentvolume",
+        "persistentvolumeclaim",
+        "storageclass",
+        "volume",
+    )
+    _COMPUTE_KW = (
+        "lambda",
+        "function",
+        "instance",
+        "ecs",
+        "eks",
+        "ecr",
+        "fargate",
+        "deployment",
+        "statefulset",
+        "daemonset",
+        "replicaset",
+        "cronjob",
+        "job",
+        "pod",
+        "container",
+    )
+
+    if any(kw in rtype for kw in _NETWORK_KW):
         return f"network/{module_dir}"
-    if any(kw in rtype for kw in ("iam", "role", "policy", "user", "group", "access_key")):
+    if any(kw in rtype for kw in _IDENTITY_KW):
         return f"identity/{module_dir}"
-    if any(
-        kw in rtype
-        for kw in (
-            "s3",
-            "bucket",
-            "rds",
-            "db_instance",
-            "dynamodb",
-            "neptune",
-            "elasticsearch",
-            "redshift",
-            "ebs",
-            "efs",
-            "kms",
-            "snapshot",
-            "backup",
-        )
-    ):
+    if any(kw in rtype for kw in _DATA_KW):
         return f"data/{module_dir}"
-    if any(kw in rtype for kw in ("lambda", "function", "instance", "ecs", "eks", "ecr", "fargate")):
+    if any(kw in rtype for kw in _COMPUTE_KW):
         return f"compute/{module_dir}"
+
+    if provider == "kubernetes":
+        return f"k8s/{module_dir}"
+    if provider == "docker":
+        return f"docker/{module_dir}"
+
     return f"general/{module_dir}"
 
 
@@ -164,6 +234,19 @@ def build_graph_from_inventory(inventory_path: str, output_dir: str) -> tuple[st
                     "port",
                     "protocol",
                     "versioning",
+                    "privileged",
+                    "capability",
+                    "securitycontext",
+                    "runasuser",
+                    "runasroot",
+                    "readonly",
+                    "hostnetwork",
+                    "hostpid",
+                    "hostipc",
+                    "serviceaccount",
+                    "networkmode",
+                    "expose",
+                    "environment",
                 )
             )
         }
