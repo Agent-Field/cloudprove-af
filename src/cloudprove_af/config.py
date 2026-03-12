@@ -29,7 +29,7 @@ class BudgetConfig(BaseModel):
 
 
 DEPTH_HUNTER_MAP: dict[DepthProfile, list[str]] = {
-    DepthProfile.QUICK: ["iam", "network", "data", "secrets"],
+    DepthProfile.QUICK: ["iam", "network", "data", "secrets", "compute"],
     DepthProfile.STANDARD: ["iam", "network", "data", "secrets", "compute", "logging", "compliance"],
     DepthProfile.THOROUGH: ["iam", "network", "data", "secrets", "compute", "logging", "compliance"],
 }
@@ -41,7 +41,7 @@ DEPTH_CHAIN_LIMITS: dict[DepthProfile, int] = {
 }
 
 DEPTH_PROVER_CAPS: dict[DepthProfile, int] = {
-    DepthProfile.QUICK: 10,
+    DepthProfile.QUICK: 20,
     DepthProfile.STANDARD: 30,
     DepthProfile.THOROUGH: 10_000,
 }

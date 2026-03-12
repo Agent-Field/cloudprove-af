@@ -26,22 +26,40 @@ GRAPH-AWARE ANALYSIS INSTRUCTIONS:
 4. Distinguish public exposure from authenticated over-broad access and cross-account data sharing risk.
 5. Prioritize findings where compromise of one node enables broad downstream data impact.
 
-DOMAIN-SPECIFIC FOCUS:
-- Verify encryption at rest for S3, RDS, EBS, and equivalent stores with explicit key references.
-- Verify encryption in transit requirements where configurable (TLS enforcement, secure transport conditions).
-- Detect S3 bucket policies enabling public or anonymous access, including ACL and policy interaction issues.
-- Detect risky cross-account bucket access where principal scope and conditions are weak or absent.
-- Check RDS public accessibility and correlate with subnet placement and security group exposure.
-- Validate backup, snapshot, and retention policies for critical data stores and stateful services.
-- Identify unencrypted EBS volumes attached to instances, especially boot volumes and data disks.
-- Inspect object-level logging and access telemetry controls for forensic readiness on sensitive buckets.
-- Evaluate KMS key policy and grants that effectively bypass intended data isolation.
-- Identify lifecycle/replication configurations that move sensitive data into weaker security domains.
-- Map each confirmed issue to CIS AWS Foundations controls where applicable: 2.1.1, 2.1.2, 2.2.1, 2.3.1.
+SECURITY REASONING FRAMEWORK:
+Think like an attacker who has found one foothold and wants to reach, read, corrupt, or destroy data. Think like a compliance auditor who must certify every data store meets security baselines. Your job is to find every way data can be exposed, lost, corrupted, or accessed by unauthorized parties.
+
+For EVERY data-related resource you encounter (any storage, database, queue, cache, stream, or key management resource), systematically reason through these security dimensions:
+
+1. CONFIDENTIALITY — Can unauthorized parties read this data?
+   Ask: Is encryption at rest enabled? Is encryption in transit enforced? Are access policies overly broad or public? Are there cross-account sharing risks? Can the data be accessed through unintended paths?
+   Example: An S3 bucket without server-side encryption, an RDS instance without storage_encrypted=true, an Elasticsearch domain without node-to-node encryption, a Neptune cluster without storage encryption.
+
+2. INTEGRITY — Can this data be tampered with or its provenance lost?
+   Ask: Is versioning enabled? Are there immutability controls? Can objects be overwritten without audit trail? Are there lifecycle policies that could silently delete data? Can tags be mutated to bypass policies?
+   Example: An S3 bucket without versioning means ransomware can overwrite objects irreversibly. A container registry with mutable tags means image provenance is unverifiable.
+
+3. AVAILABILITY — Can this data be lost, and can the system recover?
+   Ask: Are backups configured? Is there retention policy? Is multi-AZ or replication set up for critical stores? Are snapshots encrypted? Is there a disaster recovery path?
+   Example: An RDS instance with backup_retention_period=0, an EBS volume without snapshots, a DynamoDB table without point-in-time recovery.
+
+4. ACCESS CONTROL — Who can reach this data and through what paths?
+   Ask: Are bucket policies, resource policies, or ACLs overly permissive? Is public access blocked at the account or resource level? Are there conditions limiting access? Do IAM paths grant broader access than intended?
+   Example: An S3 bucket ACL allowing public-read, an Elasticsearch domain policy with Principal="*", a database publicly accessible from the internet.
+
+5. OBSERVABILITY — Would you know if this data was accessed or exfiltrated?
+   Ask: Is access logging enabled? Are there audit trails? Is object-level logging configured for sensitive buckets? Are CloudWatch alarms monitoring abnormal access patterns?
+   Example: An S3 bucket without access logging, a database without enhanced monitoring, missing CloudTrail data events for sensitive buckets.
+
+6. KEY MANAGEMENT — Are encryption keys properly governed?
+   Ask: Is key rotation enabled? Are key policies overly permissive? Are grants scoped narrowly? Could key compromise cascade to multiple data stores?
+   Example: A KMS key without automatic rotation, key policies allowing broad decrypt access, secrets encrypted with AWS-managed keys instead of CMKs for sensitive workloads.
+
+IMPORTANT: The examples above are illustrative, not exhaustive. For every data resource in the graph, reason through ALL six dimensions. A single resource may have findings across multiple dimensions. Do not limit your analysis to only the examples listed — discover issues by reasoning about what SHOULD be configured for each resource based on cloud security best practices.
 
 WORKFLOW:
-1. Use Bash to locate storage, database, encryption, and backup-related IaC definitions.
-2. Use Read to inspect bucket policies, database flags, volume settings, KMS blocks, and module defaults.
+1. Use Bash to locate ALL storage, database, encryption, key management, queue, stream, and backup-related IaC definitions.
+2. Use Read to inspect every data resource's configuration — examine ALL attributes, not just the ones you expect to be misconfigured. Missing attributes (security features not explicitly enabled) are often the most critical findings.
 3. Build graph-based access paths showing identity/workload to data-store relationships.
 4. Re-validate each path and control setting with exact file and line evidence before severity assignment.
 5. Use Write to emit strict HuntResult JSON only.

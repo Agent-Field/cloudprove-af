@@ -26,22 +26,36 @@ GRAPH-AWARE ANALYSIS INSTRUCTIONS:
 4. Correlate detection controls with the resources they protect to avoid control-presence false confidence.
 5. Prioritize findings where missing telemetry obscures high-impact attack paths.
 
-DOMAIN-SPECIFIC FOCUS:
-- Verify CloudTrail is enabled for all regions and not limited to a single region trail.
-- Verify CloudTrail log file validation is enabled for tamper-evident audit integrity.
-- Verify CloudTrail logs are delivered to S3 with secure bucket policy and access logging where expected.
-- Check CloudWatch/EventBridge integration for CloudTrail events and alerting pipeline continuity.
-- Verify VPC flow logs coverage for all VPCs and critical subnets, not only primary VPC.
-- Verify GuardDuty is enabled, not suspended, and configured in all relevant regions/accounts.
-- Validate CloudWatch alarms on critical signals: unauthorized API calls, console sign-in failures, policy changes.
-- Check log retention policies for CloudWatch and S3 to satisfy forensic and compliance windows.
-- Detect telemetry gaps for public-facing load balancers, WAF, and object storage access events.
-- Evaluate encryption and access controls for log destinations to prevent log exfiltration or tampering.
-- Map each confirmed issue to CIS AWS Foundations controls where applicable: 3.1-3.14, 4.1-4.15.
+SECURITY REASONING FRAMEWORK:
+Think like an incident responder who needs to reconstruct an attack timeline after a breach. Think like a SOC architect who must ensure every critical resource and path is observable. If an attacker compromised any resource in this infrastructure, would you have the telemetry to detect, investigate, and respond?
+
+For EVERY resource in the infrastructure, systematically reason through these observability dimensions:
+
+1. AUDIT TRAIL — Can you prove who did what, when, and to which resource?
+   Ask: Is CloudTrail enabled and covering all regions? Is log file validation enabled for tamper evidence? Are management events and data events captured? Are API-level actions traceable? Is there an unbroken chain from action to evidence?
+   Example: CloudTrail not enabled, single-region trail missing activity in other regions, log file validation disabled allowing tamper without detection.
+
+2. NETWORK VISIBILITY — Can you see what's flowing across the network?
+   Ask: Are VPC flow logs enabled on all VPCs, subnets, and network interfaces? Are flow logs covering both accept and reject traffic? Are logs sent to a durable, queryable destination? Can you detect lateral movement or data exfiltration patterns?
+   Example: VPCs without flow logs, flow logs only capturing accepted traffic (missing rejected connection attempts that indicate scanning), flow logs with short retention.
+
+3. RESOURCE-LEVEL MONITORING — Are individual resources emitting meaningful telemetry?
+   Ask: Is enhanced monitoring enabled for databases? Are EKS/ECS containers logging to CloudWatch? Are Lambda functions configured with appropriate log retention? Are load balancer access logs enabled? Is S3 access logging enabled for sensitive buckets?
+   Example: RDS without enhanced monitoring, EKS without audit logging, Lambda log groups without retention policies, ELB/ALB without access logs, S3 buckets without server access logging.
+
+4. ALERTING & DETECTION — Would you be notified of suspicious activity?
+   Ask: Are CloudWatch alarms configured for critical signals? Are there alerts for unauthorized API calls, policy changes, console sign-in failures, root usage? Is GuardDuty enabled? Are there detection rules for the attack paths identified in this infrastructure?
+   Example: No CloudWatch alarms for IAM policy changes, no alert for root account usage, GuardDuty not enabled, no notification channel for security events.
+
+5. LOG PROTECTION — Are the logs themselves secure and tamper-resistant?
+   Ask: Are log destinations encrypted? Are access controls on log buckets and log groups restrictive? Can an attacker delete or modify logs? Is there a retention policy that meets compliance and forensic requirements?
+   Example: CloudTrail logs in an unencrypted S3 bucket, log bucket without versioning (allowing log deletion), log bucket with overly broad access policy.
+
+IMPORTANT: The examples above are illustrative, not exhaustive. For every resource in the infrastructure graph, consider what telemetry SHOULD exist for security operations. Missing logging is a finding even when no resource explicitly declares it — the ABSENCE of logging configuration is itself a security gap. Do not limit your analysis to resources that explicitly mention logging.
 
 WORKFLOW:
-1. Use Bash to locate CloudTrail, CloudWatch, GuardDuty, VPC flow log, and logging destination IaC.
-2. Use Read to inspect trail scope, region settings, log validation flags, alarm definitions, and retention blocks.
+1. Use Bash to locate ALL logging, monitoring, and observability IaC: CloudTrail, CloudWatch, GuardDuty, VPC flow logs, access logs, and log destinations.
+2. Use Read to inspect trail scope, region settings, log validation flags, alarm definitions, retention blocks, and log destination configurations.
 3. Build graph-based visibility maps from critical resources to corresponding telemetry and alerting controls.
 4. Validate each finding with precise IaC evidence and control-to-resource mapping.
 5. Use Write to emit strict HuntResult JSON only.
