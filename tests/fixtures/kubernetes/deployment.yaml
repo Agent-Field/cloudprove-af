@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: security-lab
+  labels:
+    app.kubernetes.io/part-of: cloudsecurity-af
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orders-api-config
+  namespace: security-lab
+data:
+  APP_ENV: production
+  LOG_LEVEL: debug
+  REDIS_HOST: redis.security-lab.svc.cluster.local
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: orders-api
+  namespace: security-lab
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-api
+  namespace: security-lab
+  labels:
+    app: orders-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: orders-api
+  template:
+    metadata:
+      labels:
+        app: orders-api
+    spec:
+      serviceAccountName: orders-api
+      containers:
+        - name: api
+          image: ghcr.io/example/orders-api:v2.3.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DATABASE_HOST
+              value: postgres.security-lab.svc.cluster.local
+            - name: DATABASE_USER
+              value: orders_user
+            - name: DATABASE_PASSWORD
+              value: "ProdDbPass!2026"
+            - name: API_TOKEN
+              valueFrom:
+                configMapKeyRef:
+                  name: orders-api-config
+                  key: APP_ENV
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-api
+  namespace: security-lab
+spec:
+  type: LoadBalancer
+  selector:
+    app: orders-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: orders-api
+  namespace: security-lab
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: orders-api.example.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: orders-api
+                port:
+                  number: 80

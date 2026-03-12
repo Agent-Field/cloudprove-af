@@ -1,0 +1,44 @@
+replicaCount: 3
+
+image:
+  repository: ghcr.io/example/payment-gateway
+  tag: "v2.8.1"
+  pullPolicy: IfNotPresent
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8080
+
+database:
+  host: payment-db.default.svc.cluster.local
+  username: payment_app
+  password: "SuperSecret123!"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: pay-api.example.internal
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+securityContext:
+  runAsNonRoot: false
+  runAsUser: 0
+  allowPrivilegeEscalation: true
+
+env:
+  LOG_LEVEL: debug
+  FEATURE_FLAGS: fraud-check-v2,legacy-callback-mode
