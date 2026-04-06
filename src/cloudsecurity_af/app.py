@@ -71,14 +71,36 @@ def _as_dict(payload: object, name: str) -> dict[str, Any]:
     return payload
 
 
+def _workspaces_root() -> str:
+    explicit = os.environ.get("SEC_AF_WORKSPACES_DIR")
+    if explicit:
+        os.makedirs(explicit, exist_ok=True)
+        return explicit
+
+    default = "/workspaces"
+    try:
+        os.makedirs(default, exist_ok=True)
+        # Verify it's actually writable
+        test_file = os.path.join(default, ".write_test")
+        with open(test_file, "w") as f:
+            f.write("")
+        os.remove(test_file)
+        return default
+    except OSError:
+        fallback = os.path.join(Path.home(), ".sec-af", "workspaces")
+        os.makedirs(fallback, exist_ok=True)
+        return fallback
+
+
 def _resolve_repo(repo_url: str) -> str:
     if os.path.isdir(repo_url):
         return str(Path(repo_url).resolve())
 
     if repo_url.startswith(("https://", "http://", "git@")):
         repo_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
-        target_dir = f"/workspaces/{repo_name}"
-        os.makedirs("/workspaces", exist_ok=True)
+        ws_root = _workspaces_root()
+        target_dir = os.path.join(ws_root, repo_name)
+        os.makedirs(ws_root, exist_ok=True)
 
         if os.path.isdir(target_dir):
             subprocess.run(
